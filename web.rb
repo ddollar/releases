@@ -47,6 +47,7 @@ post "/apps/:app/release" do
   api_key = creds[1]
 
   halt(403, "must specify build_url") unless params[:build_url]
+  halt(403, "must specify description") unless params[:description]
 
   release = Dir.mktmpdir do |dir|
     escaped_build_url = Shellwords.escape(params[:build_url])
@@ -71,7 +72,7 @@ post "/apps/:app/release" do
       "process_types" => procfile
     }
 
-    release = api(api_key).release(params[:app], "#{dir}/build", "Release through new API", release_options)
+    release = api(api_key).release(params[:app], "#{dir}/build", params[:description], release_options)
     release["release"]
   end
 
