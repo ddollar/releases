@@ -1,6 +1,6 @@
 # releases
 
-Idealized releases API
+Idealized release API
 
 ### Usage
 
