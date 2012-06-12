@@ -47,6 +47,10 @@ helpers do
     auth = Rack::Auth::Basic::Request.new(request.env)
     auth.provided? && auth.basic? ? auth.credentials : auth!
   end
+
+  def error(message)
+    halt 422, { "error" => message }.to_json
+  end
 end
 
 post "/apps/:app/release" do
@@ -69,9 +73,15 @@ post "/apps/:app/release" do
 
     %x{ unsquashfs -d #{dir}/extract #{dir}/build Procfile }
 
-    procfile = File.read("#{dir}/extract/Procfile").split("\n").inject({}) do |ax, line|
-      ax[$1] = $2 if line =~ /^([A-Za-z0-9_]+):\s*(.+)$/
-      ax
+    if params[:processes]
+      procfile = params[:processes]
+    else
+      error "No Procfile in the slug" unless File.exists?("#{dir}/extract/Procfile")
+
+      procfile = File.read("#{dir}/extract/Procfile").split("\n").inject({}) do |ax, line|
+        ax[$1] = $2 if line =~ /^([A-Za-z0-9_]+):\s*(.+)$/
+        ax
+      end
     end
 
     release_options = {
