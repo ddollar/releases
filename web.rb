@@ -76,11 +76,11 @@ post "/apps/:app/release" do
     if params[:processes]
       procfile = params[:processes]
     else
-      error "No Procfile in the slug" unless File.exists?("#{dir}/extract/Procfile")
-
-      procfile = File.read("#{dir}/extract/Procfile").split("\n").inject({}) do |ax, line|
-        ax[$1] = $2 if line =~ /^([A-Za-z0-9_]+):\s*(.+)$/
-        ax
+      if File.exists?("#{dir}/extract/Procfile")
+        procfile = File.read("#{dir}/extract/Procfile").split("\n").inject({}) do |ax, line|
+          ax[$1] = $2 if line =~ /^([A-Za-z0-9_]+):\s*(.+)$/
+          ax
+        end
       end
     end
 
