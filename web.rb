@@ -31,7 +31,7 @@ end
 helpers do
   def api(key)
     host = "heroku.com"
-    if m = env["HTTP_HOST"].match(/(.*).releases-test.herokuapp.com/)
+    if m = env["HTTP_HOST"].match(/(.*).releases-(\w+).herokuapp.com/)
       host = "#{m[1]}.herokudev.com"
     end
     client = Heroku::Client.new("david@heroku.com", key)
