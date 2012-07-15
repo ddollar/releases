@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# fail fast
+set -o errexit
+set -o pipefail
+
+slug=$(heroku build https://github.com/ddollar/releases.git -p)
+
+heroku release $slug -a releases-staging
+
+env RELEASE_HOST=https://releases-staging.herokuapp.com heroku release $slug -a releases-staging
+env RELEASE_HOST=https://releases-staging.herokuapp.com heroku release $slug -a releases-production
