@@ -16,6 +16,7 @@ class Heroku::Client
   def release(app_name, slug, description, options={})
     release = releases_new(app_name)
     RestClient.put(release["slug_put_url"], File.open(slug, "rb"), :content_type => nil)
+    user = json_decode(get("/account").to_s)["email"]
     payload = release.merge({
       "slug_version" => 2,
       "run_deploy_hooks" => true,
