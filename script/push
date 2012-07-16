@@ -4,6 +4,7 @@
 set -o errexit
 set -o pipefail
 
+# compile a slug from git
 slug=$(heroku build https://github.com/ddollar/releases.git -p)
 
 # save cloud and switch to the standard cloud
