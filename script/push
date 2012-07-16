@@ -17,11 +17,12 @@ env RELEASE_HOST=https://releases-production.herokuapp.com heroku release $slug 
 env RELEASE_HOST=https://releases-staging.herokuapp.com heroku release $slug -a releases-staging
 
 # release to standard production using standard staging
-heroku cloud standard
 env RELEASE_HOST=https://releases-staging.herokuapp.com heroku release $slug -a releases-production
 
-# release to shadow staging and production using standard production
+# switch to shadow cloud
 heroku cloud shadow
+
+# release to shadow staging and production using standard production
 env RELEASE_HOST=https://releases-production.herokuapp.com heroku release $slug -a releases-staging
 env RELEASE_HOST=https://releases-production.herokuapp.com heroku release $slug -a releases-production
 
