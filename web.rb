@@ -30,13 +30,8 @@ end
 
 helpers do
   def api(key, cloud="standard")
-    host = case cloud
-      when "standard" then "heroku.com"
-      when "shadow"   then "heroku-shadow.com"
-      else "#{cloud}.herokudev.com"
-    end
     client = Heroku::Client.new("david@heroku.com", key)
-    client.host = host
+    client.host = cloud
     client
   end
 
