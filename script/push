@@ -23,8 +23,7 @@ env RELEASE_HOST=https://releases-staging.herokuapp.com heroku release $slug -a 
 # switch to shadow cloud
 heroku cloud shadow
 
-# release to shadow staging and production using standard production
-env RELEASE_HOST=https://releases-production.herokuapp.com heroku release $slug -a releases-staging
+# release to shadow production using standard production
 env RELEASE_HOST=https://releases-production.herokuapp.com heroku release $slug -a releases-production
 
 # restore old cloud
