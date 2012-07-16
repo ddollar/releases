@@ -29,10 +29,11 @@ class Heroku::Client
 end
 
 helpers do
-  def api(key)
-    host = "heroku.com"
-    if m = env["HTTP_HOST"].match(/(.*).releases-(\w+).herokuapp.com/)
-      host = "#{m[1]}.herokudev.com"
+  def api(key, cloud="standard")
+    host = case cloud
+      when "standard" then "heroku.com"
+      when "shadow"   then "heroku-shadow.com"
+      else "#{cloud}.herokudev.com"
     end
     client = Heroku::Client.new("david@heroku.com", key)
     client.host = host
@@ -89,7 +90,7 @@ post "/apps/:app/release" do
       "process_types" => procfile
     }
 
-    release = api(api_key).release(params[:app], "#{dir}/build", params[:description], release_options)
+    release = api(api_key, params[:cloud]).release(params[:app], "#{dir}/build", params[:description], release_options)
     release["release"]
   end
 
