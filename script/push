@@ -6,7 +6,25 @@ set -o pipefail
 
 slug=$(heroku build https://github.com/ddollar/releases.git -p)
 
-heroku release $slug -a releases-staging
+# save cloud
+cloud=$(heroku cloud)
 
+# release to standard staging using standard production
+heroku cloud standard
+env RELEASE_HOST=https://releases-production.herokuapp.com heroku release $slug -a releases-staging
+
+# release to standard staging again using itself to make sure it's working
+heroku cloud standard
 env RELEASE_HOST=https://releases-staging.herokuapp.com heroku release $slug -a releases-staging
+
+# release to standard production using standard staging
+heroku cloud standard
 env RELEASE_HOST=https://releases-staging.herokuapp.com heroku release $slug -a releases-production
+
+# release to shadow staging and production using standard production
+heroku cloud shadow
+env RELEASE_HOST=https://releases-production.herokuapp.com heroku release $slug -a releases-staging
+env RELEASE_HOST=https://releases-production.herokuapp.com heroku release $slug -a releases-production
+
+# restore old cloud
+heroku cloud $cloud
