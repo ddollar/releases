@@ -12,19 +12,19 @@ cloud=$(heroku cloud)
 heroku cloud standard
 
 # release to standard staging using standard production
-env RELEASE_HOST=https://releases-production.herokuapp.com heroku release $slug -a releases-staging
+env RELEASES_HOST=https://releases-production.herokuapp.com heroku release $slug -a releases-staging
 
 # release to standard staging again using itself to make sure it's working
-env RELEASE_HOST=https://releases-staging.herokuapp.com heroku release $slug -a releases-staging
+env RELEASES_HOST=https://releases-staging.herokuapp.com heroku release $slug -a releases-staging
 
 # release to standard production using standard staging
-env RELEASE_HOST=https://releases-staging.herokuapp.com heroku release $slug -a releases-production
+env RELEASES_HOST=https://releases-staging.herokuapp.com heroku release $slug -a releases-production
 
 # switch to shadow cloud
 heroku cloud shadow
 
 # release to shadow production using standard production
-env RELEASE_HOST=https://releases-production.herokuapp.com heroku release $slug -a releases-production
+env RELEASES_HOST=https://releases-production.herokuapp.com heroku release $slug -a releases-production
 
 # restore old cloud
 heroku cloud $cloud
