@@ -64,33 +64,17 @@ post "/apps/:app/release" do
   release_from_url(api_key, params[:cloud], params[:app], params[:build_url], params[:description],params[:processes])
 end
 
-post "/apps/:app/promote" do
+post "/apps/:app/promote/:downstream_app" do
   api_key = creds[1]
 
   halt(403, "must specify cloud") unless params[:cloud]
+  halt(403, "must specify downstream_app") unless params[:downstream_app]
 
-  downstream_app = downstream_app(api_key)
-
-  downstream_slug = api(api_key, params[:cloud]).release_slug(params[:app])
-  puts api(api_key, params[:cloud]).list
-  puts downstream_slug
-  release_from_url(api_key, params[:cloud], downstream_app, downstream_slug["slug_url"], "Promotion from #{params[:app]} #{downstream_slug["name"]}", nil)
+  upstream_slug = api(api_key, params[:cloud]).release_slug(params[:app])
+  release_from_url(api_key, params[:cloud], params[:downstream_app], upstream_slug["slug_url"], "Promotion from #{params[:app]} #{upstream_slug["name"]}", nil)
 end
 
 private
-
-def downstream_app(api_key)
-  if params.has_key? "DOWNSTREAM_APP"
-    return params["DOWNSTREAM_APP"]
-  end
-  
-  config_vars = api(api_key, params[:cloud]).config_vars(params[:app])
-  if config_vars.has_key? "DOWNSTREAM_APP"
-    return config_vars["DOWNSTREAM_APP"]
-  end
-
-  halt(403, "unknown DOWNSTREAM_APP. either set as config var on upstream app or as query param")
-end
 
 def release_from_url(api_key, cloud, app, build_url, description, processes)
   release = Dir.mktmpdir do |dir|
