@@ -34,7 +34,7 @@ end
 
 helpers do
   def api(key, cloud="standard")
-    client = Heroku::Client.new("david@heroku.com", key)
+    client = Heroku::Client.new("", key)
     client.host = cloud
     client
   end
@@ -72,14 +72,16 @@ post "/apps/:app/promote" do
   downstream_app = downstream_app(api_key)
 
   downstream_slug = api(api_key, params[:cloud]).release_slug(params[:app])
+  puts api(api_key, params[:cloud]).list
+  puts downstream_slug
   release_from_url(api_key, params[:cloud], downstream_app, downstream_slug["slug_url"], "Promotion from #{params[:app]} #{downstream_slug["name"]}", nil)
 end
 
 private
 
 def downstream_app(api_key)
-  if params.has_key? :DOWNSTREAM_APP
-    return params[:DOWNSTREAM_APP]
+  if params.has_key? "DOWNSTREAM_APP"
+    return params["DOWNSTREAM_APP"]
   end
   
   config_vars = api(api_key, params[:cloud]).config_vars(params[:app])
