@@ -64,14 +64,14 @@ post "/apps/:app/release" do
   release_from_url(api_key, params[:cloud], params[:app], params[:build_url], params[:description],params[:processes])
 end
 
-post "/apps/:app/promote/:downstream_app" do
+post "/apps/:source_app/copy/:target_app" do
   api_key = creds[1]
 
   halt(403, "must specify cloud") unless params[:cloud]
-  halt(403, "must specify downstream_app") unless params[:downstream_app]
+  halt(403, "must specify target_app") unless params[:target_app]
 
-  upstream_slug = api(api_key, params[:cloud]).release_slug(params[:app])
-  release_from_url(api_key, params[:cloud], params[:downstream_app], upstream_slug["slug_url"], "Promotion from #{params[:app]} #{upstream_slug["name"]}", nil)
+  source_slug = api(api_key, params[:cloud]).release_slug(params[:source_app])
+  release_from_url(api_key, params[:cloud], params[:target_app], source_slug["slug_url"], "Copy from #{params[:source_app]} #{source_slug["name"]}", nil)
 end
 
 private
