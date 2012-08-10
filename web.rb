@@ -52,6 +52,44 @@ helpers do
   def error(message)
     halt 422, { "error" => message }.to_json
   end
+
+  def release_from_url(api_key, cloud, app, build_url, description, processes)
+    release = Dir.mktmpdir do |dir|
+      escaped_build_url = Shellwords.escape(build_url)
+
+      if build_url =~ /\.tgz$/
+        %x{ mkdir -p #{dir}/tarball }
+        %x{ cd #{dir}/tarball && curl #{escaped_build_url} -s -o- | tar xzf - }
+        %x{ mksquashfs #{dir}/tarball #{dir}/squash -all-root }
+        %x{ cp #{dir}/squash #{dir}/build }
+      else
+        %x{ curl #{escaped_build_url} -o #{dir}/build 2>&1 }
+      end
+
+      %x{ unsquashfs -d #{dir}/extract #{dir}/build Procfile }
+
+      if processes
+        procfile = processes
+      else
+        if File.exists?("#{dir}/extract/Procfile")
+          procfile = File.read("#{dir}/extract/Procfile").split("\n").inject({}) do |ax, line|
+            ax[$1] = $2 if line =~ /^([A-Za-z0-9_]+):\s*(.+)$/
+            ax
+          end
+        end
+      end
+
+      release_options = {
+          "process_types" => procfile
+      }
+
+      release = api(api_key, cloud).release(app, "#{dir}/build", description, release_options)
+      release["release"]
+    end
+
+    content_type "application/json"
+    JSON.dump({"release" => release})
+  end
 end
 
 post "/apps/:app/release" do
@@ -72,44 +110,4 @@ post "/apps/:source_app/copy/:target_app" do
 
   source_slug = api(api_key, params[:cloud]).release_slug(params[:source_app])
   release_from_url(api_key, params[:cloud], params[:target_app], source_slug["slug_url"], "Copy from #{params[:source_app]} #{source_slug["name"]}", nil)
-end
-
-private
-
-def release_from_url(api_key, cloud, app, build_url, description, processes)
-  release = Dir.mktmpdir do |dir|
-    escaped_build_url = Shellwords.escape(build_url)
-
-    if build_url =~ /\.tgz$/
-      %x{ mkdir -p #{dir}/tarball }
-      %x{ cd #{dir}/tarball && curl #{escaped_build_url} -s -o- | tar xzf - }
-      %x{ mksquashfs #{dir}/tarball #{dir}/squash -all-root }
-      %x{ cp #{dir}/squash #{dir}/build }
-    else
-      %x{ curl #{escaped_build_url} -o #{dir}/build 2>&1 }
-    end
-
-    %x{ unsquashfs -d #{dir}/extract #{dir}/build Procfile }
-
-    if processes
-      procfile = processes
-    else
-      if File.exists?("#{dir}/extract/Procfile")
-        procfile = File.read("#{dir}/extract/Procfile").split("\n").inject({}) do |ax, line|
-          ax[$1] = $2 if line =~ /^([A-Za-z0-9_]+):\s*(.+)$/
-          ax
-        end
-      end
-    end
-
-    release_options = {
-        "process_types" => procfile
-    }
-
-    release = api(api_key, cloud).release(app, "#{dir}/build", description, release_options)
-    release["release"]
-  end
-
-  content_type "application/json"
-  JSON.dump({"release" => release})
 end
