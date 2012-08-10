@@ -53,7 +53,7 @@ helpers do
     halt 422, { "error" => message }.to_json
   end
 
-  def release_from_url(api_key, cloud, app, build_url, description, processes)
+  def release_from_url(api_key, cloud, app, build_url, description, processes = nil)
     release = Dir.mktmpdir do |dir|
       escaped_build_url = Shellwords.escape(build_url)
 
@@ -109,5 +109,6 @@ post "/apps/:source_app/copy/:target_app" do
   halt(403, "must specify target_app") unless params[:target_app]
 
   source_slug = api(api_key, params[:cloud]).release_slug(params[:source_app])
-  release_from_url(api_key, params[:cloud], params[:target_app], source_slug["slug_url"], "Copy from #{params[:source_app]} #{source_slug["name"]}", nil)
+  description = params[:description] ? params[:description] : "Copy from #{params[:source_app]} #{source_slug["name"]}"
+  release_from_url(api_key, params[:cloud], params[:target_app], source_slug["slug_url"], description)
 end
