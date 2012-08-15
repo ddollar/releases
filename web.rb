@@ -120,21 +120,30 @@ post "/apps/:source_app/copy/:target_app" do
     'user' => api(api_key, params[:cloud]).user_info['email'],
     'command' => params[:command],
     'source_app' => params[:source_app],
-    'target_app' => params[:target_app]
+    'target_app' => params[:target_app],
+    'result' => nil
   }
-  puts "metrics=#{Heroku::OkJson.encode metrics}"
 
   begin
-    source_slug = api(api_key, params[:cloud]).release_slug(params[:source_app])
-  rescue RestClient::UnprocessableEntity
-    halt(403, "no access to releases_slug")
-  end
+    begin
+      source_slug = api(api_key, params[:cloud]).release_slug(params[:source_app])
+    rescue RestClient::UnprocessableEntity
+      halt(403, "no access to releases_slug")
+    end
 
-  description = params[:description] ? params[:description] : "Copy from #{params[:source_app]} #{source_slug["name"]}"
+    description = params[:description] ? params[:description] : "Copy from #{params[:source_app]} #{source_slug["name"]}"
 
-  begin
-    release_from_url(api_key, params[:cloud], params[:target_app], source_slug["slug_url"], description)
-  rescue RestClient::UnprocessableEntity
-    halt(403, "no access to new-releases")
+    begin
+      release = release_from_url(api_key, params[:cloud], params[:target_app], source_slug["slug_url"], description)
+      metrics['result'] = 'success'
+      release
+    rescue RestClient::UnprocessableEntity
+      halt(403, "no access to new-releases")
+    end
+  rescue => e
+    metrics['result'] = e.message
+    throw e
+  ensure
+    puts "metrics=#{Heroku::OkJson.encode metrics}"
   end
 end
