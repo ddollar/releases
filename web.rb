@@ -110,7 +110,14 @@ post "/apps/:source_app/copy/:target_app" do
   halt(403, "must specify target_app") unless params[:target_app]
 
   # metrics logging
-  puts "action=copy user_agent=#{request.user_agent} command=#{params[:command]} source_app=#{params[:source_app]} target_app=#{params[:target_app]}"
+  metrics = {
+    :action => 'copy',
+    :user_agent => request.user_agent,
+    :command => params[:command],
+    :source_app => params[:source_app],
+    :target_app=> params[:target_app]
+  }
+  puts "metrics=#{json_encode metrics}"
 
   source_slug = api(api_key, params[:cloud]).release_slug(params[:source_app])
   description = params[:description] ? params[:description] : "Copy from #{params[:source_app]} #{source_slug["name"]}"
