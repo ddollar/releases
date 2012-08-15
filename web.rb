@@ -111,13 +111,13 @@ post "/apps/:source_app/copy/:target_app" do
 
   # metrics logging
   metrics = {
-    :action => 'copy',
-    :user_agent => request.user_agent,
-    :command => params[:command],
-    :source_app => params[:source_app],
-    :target_app=> params[:target_app]
+    'action' => 'copy',
+    'user_agent' => request.user_agent,
+    'command' => params[:command],
+    'source_app' => params[:source_app],
+    'target_app' => params[:target_app]
   }
-  puts "metrics=#{json_encode metrics}"
+  puts "metrics=#{Heroku::OkJson.encode metrics}"
 
   source_slug = api(api_key, params[:cloud]).release_slug(params[:source_app])
   description = params[:description] ? params[:description] : "Copy from #{params[:source_app]} #{source_slug["name"]}"
