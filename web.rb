@@ -53,11 +53,11 @@ end
 post "/apps/:app/release" do
   api_key = creds[1]
 
-  halt(403, "must specify build_url") unless params[:build_url]
+  halt(403, "must specify slug_url") unless params[:slug_url] || params[:build_url]
   halt(403, "must specify description") unless params[:description]
 
   release = Dir.mktmpdir do |dir|
-    escaped_build_url = Shellwords.escape(params[:build_url])
+    escaped_build_url = Shellwords.escape(params[:slug_url] || params[:build_url])
 
     if params[:build_url] =~ /\.tgz$/
       %x{ mkdir -p #{dir}/tarball }
