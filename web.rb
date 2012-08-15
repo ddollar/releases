@@ -26,11 +26,19 @@ class Heroku::Client
     }) { |k, v1, v2| v1 || v2 }.merge(options)
     releases_create(app_name, payload)
   end
+
+  def release_slug(app_name)
+    json_decode(get("/apps/#{app_name}/release_slug").to_s)
+  end
+
+  def user_info
+     json_decode(get("/user", { :accept => 'application/json' }).to_s)
+  end
 end
 
 helpers do
   def api(key, cloud="standard")
-    client = Heroku::Client.new("david@heroku.com", key)
+    client = Heroku::Client.new("", key)
     client.host = cloud
     client
   end
@@ -48,47 +56,94 @@ helpers do
   def error(message)
     halt 422, { "error" => message }.to_json
   end
+
+  def release_from_url(api_key, cloud, app, build_url, description, processes = nil)
+    release = Dir.mktmpdir do |dir|
+      escaped_build_url = Shellwords.escape(build_url)
+
+      if build_url =~ /\.tgz$/
+        %x{ mkdir -p #{dir}/tarball }
+        %x{ cd #{dir}/tarball && curl #{escaped_build_url} -s -o- | tar xzf - }
+        %x{ mksquashfs #{dir}/tarball #{dir}/squash -all-root }
+        %x{ cp #{dir}/squash #{dir}/build }
+      else
+        %x{ curl #{escaped_build_url} -o #{dir}/build 2>&1 }
+      end
+
+      %x{ unsquashfs -d #{dir}/extract #{dir}/build Procfile }
+
+      if processes
+        procfile = processes
+      else
+        if File.exists?("#{dir}/extract/Procfile")
+          procfile = File.read("#{dir}/extract/Procfile").split("\n").inject({}) do |ax, line|
+            ax[$1] = $2 if line =~ /^([A-Za-z0-9_]+):\s*(.+)$/
+            ax
+          end
+        end
+      end
+
+      release_options = {
+          "process_types" => procfile
+      }
+
+      release = api(api_key, cloud).release(app, "#{dir}/build", description, release_options)
+      release["release"]
+    end
+
+    content_type "application/json"
+    JSON.dump({"release" => release})
+  end
 end
 
 post "/apps/:app/release" do
   api_key = creds[1]
 
+  halt(403, "must specify cloud") unless params[:cloud]
   halt(403, "must specify build_url") unless params[:build_url]
   halt(403, "must specify description") unless params[:description]
 
-  release = Dir.mktmpdir do |dir|
-    escaped_build_url = Shellwords.escape(params[:build_url])
+  release_from_url(api_key, params[:cloud], params[:app], params[:build_url], params[:description],params[:processes])
+end
 
-    if params[:build_url] =~ /\.tgz$/
-      %x{ mkdir -p #{dir}/tarball }
-      %x{ cd #{dir}/tarball && curl #{escaped_build_url} -s -o- | tar xzf - }
-      %x{ mksquashfs #{dir}/tarball #{dir}/squash -all-root }
-      %x{ cp #{dir}/squash #{dir}/build }
-    else
-      %x{ curl #{escaped_build_url} -o #{dir}/build 2>&1 }
+post "/apps/:source_app/copy/:target_app" do
+  api_key = creds[1]
+
+  halt(403, "must specify cloud") unless params[:cloud]
+  halt(403, "must specify source_app") unless params[:source_app]
+  halt(403, "must specify target_app") unless params[:target_app]
+
+  # metrics logging
+  metrics = {
+    'action' => 'copy',
+    'user_agent' => request.user_agent,
+    'user' => api(api_key, params[:cloud]).user_info['email'],
+    'command' => params[:command],
+    'source_app' => params[:source_app],
+    'target_app' => params[:target_app],
+    'result' => nil
+  }
+
+  begin
+    begin
+      source_slug = api(api_key, params[:cloud]).release_slug(params[:source_app])
+    rescue RestClient::UnprocessableEntity
+      halt(403, "no access to releases_slug")
     end
 
-    %x{ unsquashfs -d #{dir}/extract #{dir}/build Procfile }
+    description = params[:description] ? params[:description] : "Copy from #{params[:source_app]} #{source_slug["name"]}"
 
-    if params[:processes]
-      procfile = params[:processes]
-    else
-      if File.exists?("#{dir}/extract/Procfile")
-        procfile = File.read("#{dir}/extract/Procfile").split("\n").inject({}) do |ax, line|
-          ax[$1] = $2 if line =~ /^([A-Za-z0-9_]+):\s*(.+)$/
-          ax
-        end
-      end
+    begin
+      release = release_from_url(api_key, params[:cloud], params[:target_app], source_slug["slug_url"], description)
+      metrics['result'] = 'success'
+      release
+    rescue RestClient::UnprocessableEntity
+      halt(403, "no access to new-releases")
     end
-
-    release_options = {
-      "process_types" => procfile
-    }
-
-    release = api(api_key, params[:cloud]).release(params[:app], "#{dir}/build", params[:description], release_options)
-    release["release"]
+  rescue => e
+    metrics['result'] = e.message
+    throw e
+  ensure
+    puts "metrics=#{Heroku::OkJson.encode metrics}"
   end
-
-  content_type "application/json"
-  JSON.dump({ "release" => release })
 end
