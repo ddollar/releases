@@ -30,6 +30,10 @@ class Heroku::Client
   def release_slug(app_name)
     json_decode(get("/apps/#{app_name}/release_slug").to_s)
   end
+
+  def user_info
+     json_decode(get("/user", { :accept => 'application/json' }).to_s)
+  end
 end
 
 helpers do
@@ -113,6 +117,7 @@ post "/apps/:source_app/copy/:target_app" do
   metrics = {
     'action' => 'copy',
     'user_agent' => request.user_agent,
+    'user' => api(api_key, params[:cloud]).user_info['email'],
     'command' => params[:command],
     'source_app' => params[:source_app],
     'target_app' => params[:target_app]
