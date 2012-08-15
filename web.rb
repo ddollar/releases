@@ -124,7 +124,17 @@ post "/apps/:source_app/copy/:target_app" do
   }
   puts "metrics=#{Heroku::OkJson.encode metrics}"
 
-  source_slug = api(api_key, params[:cloud]).release_slug(params[:source_app])
+  begin
+    source_slug = api(api_key, params[:cloud]).release_slug(params[:source_app])
+  rescue RestClient::UnprocessableEntity
+    halt(403, "no access to releases_slug")
+  end
+
   description = params[:description] ? params[:description] : "Copy from #{params[:source_app]} #{source_slug["name"]}"
-  release_from_url(api_key, params[:cloud], params[:target_app], source_slug["slug_url"], description)
+
+  begin
+    release_from_url(api_key, params[:cloud], params[:target_app], source_slug["slug_url"], description)
+  rescue RestClient::UnprocessableEntity
+    halt(403, "no access to new-releases")
+  end
 end
