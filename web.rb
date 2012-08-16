@@ -57,9 +57,11 @@ post "/apps/:app/release" do
   halt(403, "must specify description") unless params[:description]
 
   release = Dir.mktmpdir do |dir|
-    escaped_build_url = Shellwords.escape(params[:slug_url] || params[:build_url])
+    slug_url = params[:slug_url] || params[:build_url]
 
-    if params[:build_url] =~ /\.tgz$/
+    escaped_build_url = Shellwords.escape(slug_url)
+
+    if slug_url =~ /\.tgz$/
       %x{ mkdir -p #{dir}/tarball }
       %x{ cd #{dir}/tarball && curl #{escaped_build_url} -s -o- | tar xzf - }
       %x{ mksquashfs #{dir}/tarball #{dir}/squash -all-root }
