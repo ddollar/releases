@@ -31,7 +31,7 @@ end
 helpers do
   def api(key, cloud="heroku.com")
     client = Heroku::Client.new("david@heroku.com", key)
-    client.host = cloud
+    client.host = cloud if cloud
     client
   end
 
