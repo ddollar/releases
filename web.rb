@@ -13,7 +13,7 @@ class Heroku::Client
     json_decode(post("/apps/#{app_name}/releases", json_encode(payload)))
   end
 
-  def release(app_name, slug, description, options={})
+  def release(app_name, slug, description, head, options={})
     release = releases_new(app_name)
     RestClient.put(release["slug_put_url"], File.open(slug, "rb"), :content_type => nil)
     user = json_decode(get("/account").to_s)["email"]
@@ -22,7 +22,7 @@ class Heroku::Client
       "run_deploy_hooks" => true,
       "user" => user,
       "release_descr" => description,
-      "head" => Digest::SHA1.hexdigest(Time.now.to_f.to_s)
+      "head" => head
     }) { |k, v1, v2| v1 || v2 }.merge(options)
     releases_create(app_name, payload)
   end
@@ -83,11 +83,13 @@ post "/apps/:app/release" do
       end
     end
 
+    head = params[:head] || Digest::SHA1.hexdigest(Time.now.to_f.to_s)
+
     release_options = {
       "process_types" => procfile
     }
 
-    release = api(api_key, params[:cloud]).release(params[:app], "#{dir}/build", params[:description], release_options)
+    release = api(api_key, params[:cloud]).release(params[:app], "#{dir}/build", params[:description], head, release_options)
     release["release"]
   end
 
