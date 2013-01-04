@@ -52,13 +52,16 @@ end
 
 %w( /apps/:app/release /v1/apps/:app/release ).each do |route|
   post route do
+    request.body.rewind
+    body = JSON.parse(request.body.read)
+
     api_key = creds[1]
 
-    halt(403, "must specify slug_url") unless params[:slug_url] || params[:build_url]
-    halt(403, "must specify description") unless params[:description]
+    halt(403, "must specify slug_url") unless body["slug_url"] || body["build_url"]
+    halt(403, "must specify description") unless body["description"]
 
     release = Dir.mktmpdir do |dir|
-      slug_url = params[:slug_url] || params[:build_url]
+      slug_url = body["slug_url"] || body["build_url"]
 
       escaped_build_url = Shellwords.escape(slug_url)
 
@@ -73,8 +76,8 @@ end
 
       %x{ unsquashfs -d #{dir}/extract #{dir}/build Procfile }
 
-      if params[:processes]
-        procfile = params[:processes]
+      if body["processes"]
+        procfile = body["processes"]
       else
         if File.exists?("#{dir}/extract/Procfile")
           procfile = File.read("#{dir}/extract/Procfile").split("\n").inject({}) do |ax, line|
@@ -88,7 +91,7 @@ end
         "process_types" => procfile
       }
 
-      release = api(api_key, params[:cloud]).release(params[:app], "#{dir}/build", params[:description], release_options)
+      release = api(api_key, body["cloud"]).release(body["app"], "#{dir}/build", body["description"], release_options)
       release["release"]
     end
 
