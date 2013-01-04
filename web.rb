@@ -91,7 +91,7 @@ end
         "process_types" => procfile
       }
 
-      release = api(api_key, body["cloud"]).release(body["app"], "#{dir}/build", body["description"], release_options)
+      release = api(api_key, body["cloud"]).release(params[:app], "#{dir}/build", body["description"], release_options)
       release["release"]
     end
 
